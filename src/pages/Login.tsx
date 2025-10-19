@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
 import LoginForm from "@/components/auth/LoginForm";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Login() {
   return (
@@ -17,6 +19,14 @@ export default function Login() {
           </p>
         </div>
         <LoginForm />
+        <div className="text-center">
+          <Link to="/admin/login">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+              <Shield className="h-4 w-4 mr-2" />
+              Admin Login
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
