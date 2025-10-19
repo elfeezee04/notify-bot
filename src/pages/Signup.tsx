@@ -13,7 +13,7 @@ export default function Signup() {
             Results Dispatch System
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Automated result management and email delivery
+            Student Registration Portal
           </p>
         </div>
         <SignupForm />

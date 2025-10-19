@@ -6,11 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Lock, UserPlus } from "lucide-react";
+import { Mail, Lock, UserPlus, User, Phone, Building } from "lucide-react";
 
 export default function SignupForm() {
   const navigate = useNavigate();
+  const [fullname, setFullname] = useState("");
+  const [regno, setRegno] = useState("");
   const [email, setEmail] = useState("");
+  const [department, setDepartment] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,22 +43,38 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("User creation failed");
+
+      // Create profile with student information
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          user_id: authData.user.id,
+          fullname,
+          regno,
+          email,
+          department,
+          phone_number: phoneNumber,
+        });
+
+      if (profileError) throw profileError;
 
       toast({
-        title: "Account created!",
-        description: "You can now login to the Results System",
+        title: "Registration successful!",
+        description: "Your account has been created. You can now login.",
       });
       
       navigate("/login");
     } catch (error: any) {
       toast({
-        title: "Signup failed",
+        title: "Registration failed",
         description: error.message,
         variant: "destructive",
       });
@@ -74,6 +94,28 @@ export default function SignupForm() {
       <CardContent>
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="fullname">Full Name</Label>
+            <Input
+              id="fullname"
+              type="text"
+              placeholder="John Doe"
+              value={fullname}
+              onChange={(e) => setFullname(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="regno">Registration Number</Label>
+            <Input
+              id="regno"
+              type="text"
+              placeholder="REG/2024/001"
+              value={regno}
+              onChange={(e) => setRegno(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -87,6 +129,28 @@ export default function SignupForm() {
                 required
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="department">Department</Label>
+            <Input
+              id="department"
+              type="text"
+              placeholder="Computer Science"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              placeholder="+234 800 000 0000"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
