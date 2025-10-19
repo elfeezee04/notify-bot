@@ -52,13 +52,19 @@ const Index = () => {
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Streamline your result management and email delivery process. Send results automatically to students with beautiful, professional emails.
             </p>
-            <div className="flex gap-4 justify-center pt-4">
-              <Button size="lg" onClick={() => navigate("/signup")} className="text-lg">
-                Start Free Trial
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/login")} className="text-lg">
-                Sign In
-              </Button>
+            <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-8">
+              <div className="bg-card rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate("/signup")}>
+                <GraduationCap className="w-10 h-10 mx-auto mb-3 text-primary" />
+                <h3 className="text-xl font-bold mb-2">Student Portal</h3>
+                <p className="text-sm text-muted-foreground mb-4">Register to view your results</p>
+                <Button className="w-full">Register as Student</Button>
+              </div>
+              <div className="bg-card rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate("/admin/login")}>
+                <Shield className="w-10 h-10 mx-auto mb-3 text-primary" />
+                <h3 className="text-xl font-bold mb-2">Admin Portal</h3>
+                <p className="text-sm text-muted-foreground mb-4">Manage and dispatch results</p>
+                <Button variant="outline" className="w-full">Admin Login</Button>
+              </div>
             </div>
           </div>
         </section>
