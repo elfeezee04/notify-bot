@@ -25,33 +25,24 @@ export default function AdminLoginForm() {
         password,
       });
 
-      // If this is the default admin credentials and login failed, create the account
+      // If default admin and login failed, create the account
       if (authError && email === "admin@example.com" && password === "admin123") {
-        // Try to sign up the admin user
         const { data: signupData, error: signupError } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-          },
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
         });
-
         if (signupError) throw signupError;
         if (!signupData.user) throw new Error("Failed to create admin account");
 
-        // Grant admin role using secure database function
+        // Assign admin role via secure RPC (bypasses RLS)
         const { error: roleError } = await supabase.rpc('assign_admin_role', {
-          target_user_id: signupData.user.id
+          target_user_id: signupData.user.id,
         });
-
         if (roleError) throw roleError;
 
-        // Now try to sign in again
-        const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        // Sign in again
+        const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({ email, password });
         if (newAuthError) throw newAuthError;
         authData = newAuthData;
       } else if (authError) {
@@ -60,39 +51,33 @@ export default function AdminLoginForm() {
 
       if (!authData.user) throw new Error("Login failed");
 
-      // Check if user has admin role
+      // Ensure admin role on default creds even if user existed already
+      if (email === "admin@example.com" && password === "admin123") {
+        const { error: ensureRoleError } = await supabase.rpc('assign_admin_role', {
+          target_user_id: authData.user.id,
+        });
+        if (ensureRoleError) console.warn('assign_admin_role warning:', ensureRoleError);
+      }
+
+      // Verify admin role
       const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", authData.user.id)
         .eq("role", "admin")
         .maybeSingle();
-
       if (roleError) throw roleError;
 
       if (!roleData) {
-        // Not an admin, sign them out
         await supabase.auth.signOut();
-        toast({
-          title: "Access Denied",
-          description: "You do not have administrator privileges",
-          variant: "destructive",
-        });
+        toast({ title: "Access Denied", description: "You do not have administrator privileges", variant: "destructive" });
         return;
       }
 
-      toast({
-        title: "Welcome back!",
-        description: "Successfully logged in as administrator",
-      });
-      
+      toast({ title: "Welcome back!", description: "Successfully logged in as administrator" });
       navigate("/dashboard");
     } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
