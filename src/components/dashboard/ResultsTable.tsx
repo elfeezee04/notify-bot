@@ -16,15 +16,23 @@ import { Send, Search, Trash2, Mail } from "lucide-react";
 
 interface Result {
   id: string;
-  student_name: string;
-  student_email: string;
-  subject: string;
+  user_id: string;
+  course_id: string;
   score: string;
   grade: string | null;
   remarks: string | null;
   status: string;
   created_at: string;
   sent_at: string | null;
+  profiles?: {
+    fullname: string;
+    regno: string;
+    email: string;
+  };
+  courses?: {
+    course_code: string;
+    course_name: string;
+  };
 }
 
 interface ResultsTableProps {
@@ -38,9 +46,11 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
   const [sendingAll, setSendingAll] = useState(false);
 
   const filteredResults = results.filter((result) =>
-    result.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    result.student_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    result.subject.toLowerCase().includes(searchTerm.toLowerCase())
+    result.profiles?.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    result.profiles?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    result.profiles?.regno.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    result.courses?.course_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    result.courses?.course_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSendResult = async (result: Result) => {
@@ -49,9 +59,9 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
     try {
       const { error: functionError } = await supabase.functions.invoke("send-result-email", {
         body: {
-          studentName: result.student_name,
-          studentEmail: result.student_email,
-          subject: result.subject,
+          studentName: result.profiles?.fullname,
+          studentEmail: result.profiles?.email,
+          subject: `${result.courses?.course_code} - ${result.courses?.course_name}`,
           score: result.score,
           grade: result.grade,
           remarks: result.remarks,
@@ -70,7 +80,7 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
 
       toast({
         title: "Result sent successfully!",
-        description: `Email sent to ${result.student_email}`,
+        description: `Email sent to ${result.profiles?.email}`,
       });
 
       onUpdate();
@@ -106,9 +116,9 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
         try {
           const { error: functionError } = await supabase.functions.invoke("send-result-email", {
             body: {
-              studentName: result.student_name,
-              studentEmail: result.student_email,
-              subject: result.subject,
+              studentName: result.profiles?.fullname,
+              studentEmail: result.profiles?.email,
+              subject: `${result.courses?.course_code} - ${result.courses?.course_name}`,
               score: result.score,
               grade: result.grade,
               remarks: result.remarks,
@@ -193,7 +203,7 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, or subject..."
+            placeholder="Search by name, regno, course..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -219,8 +229,8 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Student Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Subject</TableHead>
+              <TableHead>Reg No</TableHead>
+              <TableHead>Course</TableHead>
               <TableHead>Score</TableHead>
               <TableHead>Grade</TableHead>
               <TableHead>Status</TableHead>
@@ -237,9 +247,14 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
             ) : (
               filteredResults.map((result) => (
                 <TableRow key={result.id}>
-                  <TableCell className="font-medium">{result.student_name}</TableCell>
-                  <TableCell>{result.student_email}</TableCell>
-                  <TableCell>{result.subject}</TableCell>
+                  <TableCell className="font-medium">{result.profiles?.fullname}</TableCell>
+                  <TableCell>{result.profiles?.regno}</TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="font-medium">{result.courses?.course_code}</div>
+                      <div className="text-sm text-muted-foreground">{result.courses?.course_name}</div>
+                    </div>
+                  </TableCell>
                   <TableCell>{result.score}</TableCell>
                   <TableCell>{result.grade || "-"}</TableCell>
                   <TableCell>{getStatusBadge(result.status)}</TableCell>

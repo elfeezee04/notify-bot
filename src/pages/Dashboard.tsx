@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import AddResultForm from "@/components/dashboard/AddResultForm";
 import ResultsTable from "@/components/dashboard/ResultsTable";
+import StudentsList from "@/components/dashboard/StudentsList";
+import CourseManagement from "@/components/dashboard/CourseManagement";
 import { LogOut, GraduationCap } from "lucide-react";
 
 export default function Dashboard() {
@@ -27,7 +30,7 @@ export default function Dashboard() {
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      navigate("/login");
+      navigate("/admin/login");
     }
   };
 
@@ -35,7 +38,11 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from("results")
-        .select("*")
+        .select(`
+          *,
+          profiles:user_id (fullname, regno, email),
+          courses:course_id (course_code, course_name)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -61,7 +68,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/login");
+    navigate("/admin/login");
   };
 
   if (loading) {
@@ -87,7 +94,7 @@ export default function Dashboard() {
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 Results Dispatch System
               </h1>
-              <p className="text-xs text-muted-foreground">Dashboard</p>
+              <p className="text-xs text-muted-foreground">Admin Dashboard</p>
             </div>
           </div>
           <Button variant="outline" onClick={handleLogout}>
@@ -105,12 +112,33 @@ export default function Dashboard() {
           failed={stats.failed}
         />
 
-        <AddResultForm onSuccess={fetchResults} />
+        <Tabs defaultValue="results" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="results">Results</TabsTrigger>
+            <TabsTrigger value="add-result">Add Result</TabsTrigger>
+            <TabsTrigger value="students">Students</TabsTrigger>
+            <TabsTrigger value="courses">Courses</TabsTrigger>
+          </TabsList>
 
-        <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-2xl font-bold mb-6">All Results</h2>
-          <ResultsTable results={results} onUpdate={fetchResults} />
-        </div>
+          <TabsContent value="results">
+            <div className="bg-card rounded-lg border p-6">
+              <h2 className="text-2xl font-bold mb-6">All Results</h2>
+              <ResultsTable results={results} onUpdate={fetchResults} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="add-result">
+            <AddResultForm onSuccess={fetchResults} />
+          </TabsContent>
+
+          <TabsContent value="students">
+            <StudentsList />
+          </TabsContent>
+
+          <TabsContent value="courses">
+            <CourseManagement />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

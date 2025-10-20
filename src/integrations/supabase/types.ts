@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      courses: {
+        Row: {
+          course_code: string
+          course_name: string
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          course_code: string
+          course_name: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          course_code?: string
+          course_name?: string
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -52,6 +76,7 @@ export type Database = {
       }
       results: {
         Row: {
+          course_id: string | null
           created_at: string | null
           grade: string | null
           id: string
@@ -59,12 +84,10 @@ export type Database = {
           score: string
           sent_at: string | null
           status: string | null
-          student_email: string
-          student_name: string
-          subject: string
           user_id: string
         }
         Insert: {
+          course_id?: string | null
           created_at?: string | null
           grade?: string | null
           id?: string
@@ -72,12 +95,10 @@ export type Database = {
           score: string
           sent_at?: string | null
           status?: string | null
-          student_email: string
-          student_name: string
-          subject: string
           user_id: string
         }
         Update: {
+          course_id?: string | null
           created_at?: string | null
           grade?: string | null
           id?: string
@@ -85,12 +106,17 @@ export type Database = {
           score?: string
           sent_at?: string | null
           status?: string | null
-          student_email?: string
-          student_name?: string
-          subject?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "results_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
