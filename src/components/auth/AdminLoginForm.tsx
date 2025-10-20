@@ -19,12 +19,52 @@ export default function AdminLoginForm() {
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Try to sign in
+      let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) throw authError;
+      // If this is the default admin credentials and login failed, create the account
+      if (authError && email === "admin@example.com" && password === "admin123") {
+        // Try to sign up the admin user
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          },
+        });
+
+        if (signupError) throw signupError;
+        if (!signupData.user) throw new Error("Failed to create admin account");
+
+        // Grant admin role
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", signupData.user.id);
+
+        if (roleError) console.error("Error removing default role:", roleError);
+
+        const { error: adminRoleError } = await supabase
+          .from("user_roles")
+          .insert({ user_id: signupData.user.id, role: "admin" });
+
+        if (adminRoleError) throw adminRoleError;
+
+        // Now try to sign in again
+        const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (newAuthError) throw newAuthError;
+        authData = newAuthData;
+      } else if (authError) {
+        throw authError;
+      }
+
       if (!authData.user) throw new Error("Login failed");
 
       // Check if user has admin role
