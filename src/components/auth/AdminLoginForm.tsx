@@ -39,19 +39,12 @@ export default function AdminLoginForm() {
         if (signupError) throw signupError;
         if (!signupData.user) throw new Error("Failed to create admin account");
 
-        // Grant admin role
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", signupData.user.id);
+        // Grant admin role using secure database function
+        const { error: roleError } = await supabase.rpc('assign_admin_role', {
+          target_user_id: signupData.user.id
+        });
 
-        if (roleError) console.error("Error removing default role:", roleError);
-
-        const { error: adminRoleError } = await supabase
-          .from("user_roles")
-          .insert({ user_id: signupData.user.id, role: "admin" });
-
-        if (adminRoleError) throw adminRoleError;
+        if (roleError) throw roleError;
 
         // Now try to sign in again
         const { data: newAuthData, error: newAuthError } = await supabase.auth.signInWithPassword({
