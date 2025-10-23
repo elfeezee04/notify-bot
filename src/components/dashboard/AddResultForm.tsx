@@ -38,18 +38,45 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
 
   useEffect(() => {
     fetchStudents();
-    fetchCourses();
   }, []);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [selectedStudent]);
 
   const fetchStudents = async () => {
     try {
+      // Fetch students who have enrolled in courses
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("fullname");
+        .from("student_courses")
+        .select(`
+          student_id,
+          profiles!student_courses_student_id_fkey (
+            user_id,
+            fullname,
+            regno,
+            email
+          )
+        `);
 
       if (error) throw error;
-      setStudents(data || []);
+      
+      // Remove duplicates and map to Student type
+      const uniqueStudents = Array.from(
+        new Map(
+          data?.map((item: any) => [
+            item.profiles.user_id,
+            {
+              user_id: item.profiles.user_id,
+              fullname: item.profiles.fullname,
+              regno: item.profiles.regno,
+              email: item.profiles.email,
+            }
+          ])
+        ).values()
+      ).sort((a, b) => a.fullname.localeCompare(b.fullname));
+      
+      setStudents(uniqueStudents);
     } catch (error: any) {
       toast({
         title: "Failed to fetch students",
@@ -61,13 +88,27 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
 
   const fetchCourses = async () => {
     try {
+      if (!selectedStudent) {
+        setCourses([]);
+        return;
+      }
+
+      // Fetch only courses the selected student is enrolled in
       const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .order("course_code");
+        .from("student_courses")
+        .select(`
+          courses (
+            id,
+            course_code,
+            course_name
+          )
+        `)
+        .eq("student_id", selectedStudent);
 
       if (error) throw error;
-      setCourses(data || []);
+      
+      const enrolledCourses = data?.map((item: any) => item.courses) || [];
+      setCourses(enrolledCourses);
     } catch (error: any) {
       toast({
         title: "Failed to fetch courses",
@@ -130,7 +171,7 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
       <CardHeader>
         <CardTitle>Add New Result</CardTitle>
         <CardDescription>
-          Select a student and course to add their result
+          Select a student and their enrolled course to add a result
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -154,16 +195,26 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="course">Select Course *</Label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <Select 
+                value={selectedCourse} 
+                onValueChange={setSelectedCourse}
+                disabled={!selectedStudent}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a course" />
+                  <SelectValue placeholder={selectedStudent ? "Choose a course" : "Select student first"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.course_code} - {course.course_name}
-                    </SelectItem>
-                  ))}
+                  {courses.length === 0 && selectedStudent ? (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      Student not enrolled in any courses
+                    </div>
+                  ) : (
+                    courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.course_code} - {course.course_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

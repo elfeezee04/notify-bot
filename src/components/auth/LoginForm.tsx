@@ -19,19 +19,31 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      // Check user role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", authData.user.id)
+        .single();
+
       toast({
         title: "Login successful!",
         description: "Welcome back to the Results System",
       });
       
-      navigate("/dashboard");
+      // Redirect based on role
+      if (roleData?.role === "admin") {
+        navigate("/dashboard");
+      } else {
+        navigate("/student/dashboard");
+      }
     } catch (error: any) {
       toast({
         title: "Login failed",

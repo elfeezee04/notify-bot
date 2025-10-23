@@ -8,12 +8,22 @@ const Index = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    import("@/integrations/supabase/client").then(({ supabase }) => {
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
+    import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Check user role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+
+        if (roleData?.role === "admin") {
           navigate("/dashboard");
+        } else {
+          navigate("/student/dashboard");
         }
-      });
+      }
     });
   }, [navigate]);
 
