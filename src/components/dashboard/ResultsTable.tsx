@@ -44,6 +44,7 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
+  const [sendingStudentId, setSendingStudentId] = useState<string | null>(null);
 
   const filteredResults = results.filter((result) =>
     result.profiles?.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,6 +93,75 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
       });
     } finally {
       setSendingId(null);
+    }
+  };
+
+  const handleSendStudentResults = async (userId: string, studentName: string) => {
+    const studentPendingResults = results.filter(
+      r => r.user_id === userId && r.status === "pending"
+    );
+    
+    if (studentPendingResults.length === 0) {
+      toast({
+        title: "No pending results",
+        description: `All results for ${studentName} have already been sent`,
+      });
+      return;
+    }
+
+    setSendingStudentId(userId);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const result of studentPendingResults) {
+        try {
+          const { error: functionError } = await supabase.functions.invoke("send-result-email", {
+            body: {
+              studentName: result.profiles?.fullname,
+              studentEmail: result.profiles?.email,
+              subject: `${result.courses?.course_code} - ${result.courses?.course_name}`,
+              score: result.score,
+              grade: result.grade,
+              remarks: result.remarks,
+              resultId: result.id,
+            },
+          });
+
+          if (functionError) throw functionError;
+
+          const { error: updateError } = await supabase
+            .from("results")
+            .update({ status: "sent", sent_at: new Date().toISOString() })
+            .eq("id", result.id);
+
+          if (updateError) throw updateError;
+
+          successCount++;
+        } catch (error) {
+          failCount++;
+          await supabase
+            .from("results")
+            .update({ status: "failed" })
+            .eq("id", result.id);
+        }
+      }
+
+      toast({
+        title: "Results sent",
+        description: `Sent ${successCount} result(s) to ${studentName}${failCount > 0 ? `, ${failCount} failed` : ''}`,
+      });
+
+      onUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Failed to send results",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSendingStudentId(null);
     }
   };
 
@@ -197,6 +267,23 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
     );
   };
 
+  // Group results by student
+  const studentGroups = filteredResults.reduce((acc, result) => {
+    const userId = result.user_id;
+    if (!acc[userId]) {
+      acc[userId] = {
+        student: result.profiles,
+        results: [],
+        hasPending: false,
+      };
+    }
+    acc[userId].results.push(result);
+    if (result.status === "pending") {
+      acc[userId].hasPending = true;
+    }
+    return acc;
+  }, {} as Record<string, { student: any; results: Result[]; hasPending: boolean }>);
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4 items-center">
@@ -245,44 +332,68 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredResults.map((result) => (
-                <TableRow key={result.id}>
-                  <TableCell className="font-medium">{result.profiles?.fullname}</TableCell>
-                  <TableCell>{result.profiles?.regno}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="font-medium">{result.courses?.course_code}</div>
-                      <div className="text-sm text-muted-foreground">{result.courses?.course_name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{result.score}</TableCell>
-                  <TableCell>{result.grade || "-"}</TableCell>
-                  <TableCell>{getStatusBadge(result.status)}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleSendResult(result)}
-                      disabled={result.status === "sent" || sendingId === result.id}
-                    >
-                      {sendingId === result.id ? (
-                        "Sending..."
-                      ) : (
-                        <>
-                          <Send className="h-3 w-3 mr-1" />
-                          Send
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(result.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
+              Object.entries(studentGroups).map(([userId, group], groupIndex) => (
+                <>
+                  {group.results.map((result, resultIndex) => (
+                    <TableRow key={result.id}>
+                      <TableCell className="font-medium">
+                        {result.profiles?.fullname}
+                        {resultIndex === 0 && group.hasPending && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="ml-2 h-6 text-xs"
+                            onClick={() => handleSendStudentResults(userId, result.profiles?.fullname || '')}
+                            disabled={sendingStudentId === userId}
+                          >
+                            {sendingStudentId === userId ? (
+                              "Sending all..."
+                            ) : (
+                              <>
+                                <Mail className="h-3 w-3 mr-1" />
+                                Send All
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell>{result.profiles?.regno}</TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{result.courses?.course_code}</div>
+                          <div className="text-sm text-muted-foreground">{result.courses?.course_name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{result.score}</TableCell>
+                      <TableCell>{result.grade || "-"}</TableCell>
+                      <TableCell>{getStatusBadge(result.status)}</TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSendResult(result)}
+                          disabled={result.status === "sent" || sendingId === result.id}
+                        >
+                          {sendingId === result.id ? (
+                            "Sending..."
+                          ) : (
+                            <>
+                              <Send className="h-3 w-3 mr-1" />
+                              Send
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(result.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ))
             )}
           </TableBody>
