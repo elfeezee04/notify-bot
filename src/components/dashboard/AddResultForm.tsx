@@ -46,37 +46,15 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
 
   const fetchStudents = async () => {
     try {
-      // Fetch students who have enrolled in courses
+      // Fetch all student profiles
       const { data, error } = await supabase
-        .from("student_courses")
-        .select(`
-          student_id,
-          profiles!student_courses_student_id_fkey (
-            user_id,
-            fullname,
-            regno,
-            email
-          )
-        `);
+        .from("profiles")
+        .select("user_id, fullname, regno, email")
+        .order("fullname");
 
       if (error) throw error;
       
-      // Remove duplicates and map to Student type
-      const uniqueStudents = Array.from(
-        new Map(
-          data?.map((item: any) => [
-            item.profiles.user_id,
-            {
-              user_id: item.profiles.user_id,
-              fullname: item.profiles.fullname,
-              regno: item.profiles.regno,
-              email: item.profiles.email,
-            }
-          ])
-        ).values()
-      ).sort((a, b) => a.fullname.localeCompare(b.fullname));
-      
-      setStudents(uniqueStudents);
+      setStudents(data || []);
     } catch (error: any) {
       toast({
         title: "Failed to fetch students",
