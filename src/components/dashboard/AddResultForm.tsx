@@ -46,15 +46,51 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
 
   const fetchStudents = async () => {
     try {
-      // Fetch all student profiles
+      // Primary: fetch all student profiles (admins can view all)
       const { data, error } = await supabase
         .from("profiles")
         .select("user_id, fullname, regno, email")
         .order("fullname");
 
       if (error) throw error;
-      
-      setStudents(data || []);
+
+      let list: Student[] = (data as Student[]) || [];
+      console.debug("[AddResultForm] profiles fetched:", list.length);
+
+      // Fallback: if empty, try enrolled students join (older data setups)
+      if (list.length === 0) {
+        const { data: joined, error: joinError } = await supabase
+          .from("student_courses")
+          .select(`
+            student_id,
+            profiles!student_courses_student_id_fkey (
+              user_id,
+              fullname,
+              regno,
+              email
+            )
+          `);
+        if (joinError) throw joinError;
+
+        const uniqueStudents = Array.from(
+          new Map(
+            joined?.map((item: any) => [
+              item.profiles.user_id,
+              {
+                user_id: item.profiles.user_id,
+                fullname: item.profiles.fullname,
+                regno: item.profiles.regno,
+                email: item.profiles.email,
+              } as Student
+            ])
+          ).values()
+        );
+        console.debug("[AddResultForm] fallback joined students:", uniqueStudents.length);
+        list = uniqueStudents;
+      }
+
+      list.sort((a, b) => a.fullname.localeCompare(b.fullname));
+      setStudents(list);
     } catch (error: any) {
       toast({
         title: "Failed to fetch students",
