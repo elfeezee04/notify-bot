@@ -28,6 +28,8 @@ interface Result {
     fullname: string;
     regno: string;
     email: string;
+    level: string | null;
+    semester: string | null;
   };
   courses?: {
     course_code: string;
@@ -317,6 +319,7 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
             <TableRow>
               <TableHead>Student Name</TableHead>
               <TableHead>Reg No</TableHead>
+              <TableHead>Level/Semester</TableHead>
               <TableHead>Course</TableHead>
               <TableHead>Score</TableHead>
               <TableHead>Grade</TableHead>
@@ -327,7 +330,7 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
           <TableBody>
             {filteredResults.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No results found
                 </TableCell>
               </TableRow>
@@ -358,6 +361,11 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
                         )}
                       </TableCell>
                       <TableCell>{result.profiles?.regno}</TableCell>
+                      <TableCell>
+                        {result.profiles?.level && result.profiles?.semester 
+                          ? `${result.profiles.level}L / ${result.profiles.semester}`
+                          : '-'}
+                      </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-medium">{result.courses?.course_code}</div>

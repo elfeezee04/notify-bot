@@ -14,6 +14,8 @@ interface Student {
   fullname: string;
   regno: string;
   email: string;
+  level: string | null;
+  semester: string | null;
 }
 
 interface Course {
@@ -49,7 +51,7 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
       // Primary: fetch all student profiles (admins can view all)
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, fullname, regno, email")
+        .select("user_id, fullname, regno, email, level, semester")
         .order("fullname");
 
       if (error) throw error;
@@ -67,7 +69,9 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
               user_id,
               fullname,
               regno,
-              email
+              email,
+              level,
+              semester
             )
           `);
         if (joinError) throw joinError;
@@ -81,6 +85,8 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
                 fullname: item.profiles.fullname,
                 regno: item.profiles.regno,
                 email: item.profiles.email,
+                level: item.profiles.level,
+                semester: item.profiles.semester,
               } as Student
             ])
           ).values()
@@ -200,7 +206,7 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
                 <SelectContent>
                   {students.map((student) => (
                     <SelectItem key={student.user_id} value={student.user_id}>
-                      {student.fullname} ({student.regno})
+                      {student.fullname} ({student.regno}) - Level {student.level}, {student.semester} Sem
                     </SelectItem>
                   ))}
                 </SelectContent>
