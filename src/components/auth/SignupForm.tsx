@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Mail, Lock, UserPlus, User, Phone, Building } from "lucide-react";
@@ -14,6 +15,8 @@ export default function SignupForm() {
   const [regno, setRegno] = useState("");
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
+  const [level, setLevel] = useState("");
+  const [semester, setSemester] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,6 +64,8 @@ export default function SignupForm() {
           regno,
           email,
           department,
+          level,
+          semester,
           phone_number: phoneNumber,
         });
 
@@ -140,6 +145,33 @@ export default function SignupForm() {
               onChange={(e) => setDepartment(e.target.value)}
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="level">Level</Label>
+            <Select value={level} onValueChange={setLevel} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="100">100 Level</SelectItem>
+                <SelectItem value="200">200 Level</SelectItem>
+                <SelectItem value="300">300 Level</SelectItem>
+                <SelectItem value="400">400 Level</SelectItem>
+                <SelectItem value="500">500 Level</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="semester">Semester</Label>
+            <Select value={semester} onValueChange={setSemester} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select semester" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="First">First Semester</SelectItem>
+                <SelectItem value="Second">Second Semester</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Phone Number</Label>
