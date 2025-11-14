@@ -30,6 +30,7 @@ interface Result {
     email: string;
     level: string | null;
     semester: string | null;
+    department: string;
   };
   courses?: {
     course_code: string;
@@ -57,33 +58,68 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
   );
 
   const handleSendResult = async (result: Result) => {
+    // When sending a single result, we'll actually send all pending results for this student
+    const studentPendingResults = results.filter(
+      r => r.user_id === result.user_id && r.status === "pending"
+    );
+
+    if (studentPendingResults.length === 0) {
+      toast({
+        title: "No pending results",
+        description: "This result has already been sent",
+      });
+      return;
+    }
+
     setSendingId(result.id);
 
     try {
+      // Calculate GPA (simple average)
+      const gradePoints: { [key: string]: number } = {
+        'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0
+      };
+      
+      const validGrades = studentPendingResults.filter(r => r.grade && gradePoints[r.grade]);
+      const gpa = validGrades.length > 0
+        ? (validGrades.reduce((sum, r) => sum + (gradePoints[r.grade!] || 0), 0) / validGrades.length).toFixed(2)
+        : undefined;
+
+      // Prepare the combined results
+      const courseResults = studentPendingResults.map(r => ({
+        courseCode: r.courses?.course_code || '',
+        courseName: r.courses?.course_name || '',
+        score: r.score,
+        grade: r.grade || undefined
+      }));
+
       const { error: functionError } = await supabase.functions.invoke("send-result-email", {
         body: {
           studentName: result.profiles?.fullname,
           studentEmail: result.profiles?.email,
-          subject: `${result.courses?.course_code} - ${result.courses?.course_name}`,
-          score: result.score,
-          grade: result.grade,
-          remarks: result.remarks,
-          resultId: result.id,
+          regno: result.profiles?.regno,
+          department: result.profiles?.department,
+          level: result.profiles?.level,
+          semester: result.profiles?.semester,
+          results: courseResults,
+          gpa: gpa,
+          remarks: validGrades.length > 0 ? (parseFloat(gpa!) >= 3.5 ? "Excellent Performance" : parseFloat(gpa!) >= 2.5 ? "Good Performance" : "Fair Performance") : undefined,
+          resultIds: studentPendingResults.map(r => r.id)
         },
       });
 
       if (functionError) throw functionError;
 
+      // Update all pending results for this student as sent
       const { error: updateError } = await supabase
         .from("results")
         .update({ status: "sent", sent_at: new Date().toISOString() })
-        .eq("id", result.id);
+        .in("id", studentPendingResults.map(r => r.id));
 
       if (updateError) throw updateError;
 
       toast({
-        title: "Result sent successfully!",
-        description: `Email sent to ${result.profiles?.email}`,
+        title: "Results sent successfully!",
+        description: `All ${studentPendingResults.length} result(s) sent to ${result.profiles?.email} in a single email`,
       });
 
       onUpdate();
@@ -114,45 +150,56 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
     setSendingStudentId(userId);
 
     try {
-      let successCount = 0;
-      let failCount = 0;
+      // Get the first result to extract student info
+      const firstResult = studentPendingResults[0];
+      
+      // Calculate GPA (simple average for now)
+      const gradePoints: { [key: string]: number } = {
+        'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0
+      };
+      
+      const validGrades = studentPendingResults.filter(r => r.grade && gradePoints[r.grade]);
+      const gpa = validGrades.length > 0
+        ? (validGrades.reduce((sum, r) => sum + (gradePoints[r.grade!] || 0), 0) / validGrades.length).toFixed(2)
+        : undefined;
 
-      for (const result of studentPendingResults) {
-        try {
-          const { error: functionError } = await supabase.functions.invoke("send-result-email", {
-            body: {
-              studentName: result.profiles?.fullname,
-              studentEmail: result.profiles?.email,
-              subject: `${result.courses?.course_code} - ${result.courses?.course_name}`,
-              score: result.score,
-              grade: result.grade,
-              remarks: result.remarks,
-              resultId: result.id,
-            },
-          });
+      // Prepare the combined results
+      const courseResults = studentPendingResults.map(r => ({
+        courseCode: r.courses?.course_code || '',
+        courseName: r.courses?.course_name || '',
+        score: r.score,
+        grade: r.grade || undefined
+      }));
 
-          if (functionError) throw functionError;
+      // Send single email with all results
+      const { error: functionError } = await supabase.functions.invoke("send-result-email", {
+        body: {
+          studentName: firstResult.profiles?.fullname,
+          studentEmail: firstResult.profiles?.email,
+          regno: firstResult.profiles?.regno,
+          department: firstResult.profiles?.department,
+          level: firstResult.profiles?.level,
+          semester: firstResult.profiles?.semester,
+          results: courseResults,
+          gpa: gpa,
+          remarks: validGrades.length > 0 ? (parseFloat(gpa!) >= 3.5 ? "Excellent Performance" : parseFloat(gpa!) >= 2.5 ? "Good Performance" : "Fair Performance") : undefined,
+          resultIds: studentPendingResults.map(r => r.id)
+        },
+      });
 
-          const { error: updateError } = await supabase
-            .from("results")
-            .update({ status: "sent", sent_at: new Date().toISOString() })
-            .eq("id", result.id);
+      if (functionError) throw functionError;
 
-          if (updateError) throw updateError;
+      // Update all results as sent
+      const { error: updateError } = await supabase
+        .from("results")
+        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .in("id", studentPendingResults.map(r => r.id));
 
-          successCount++;
-        } catch (error) {
-          failCount++;
-          await supabase
-            .from("results")
-            .update({ status: "failed" })
-            .eq("id", result.id);
-        }
-      }
+      if (updateError) throw updateError;
 
       toast({
-        title: "Results sent",
-        description: `Sent ${successCount} result(s) to ${studentName}${failCount > 0 ? `, ${failCount} failed` : ''}`,
+        title: "Results sent successfully!",
+        description: `All ${studentPendingResults.length} result(s) sent to ${studentName} in a single email`,
       });
 
       onUpdate();
@@ -184,17 +231,50 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
       let successCount = 0;
       let failCount = 0;
 
-      for (const result of pendingResults) {
+      // Group results by student
+      const resultsByStudent = pendingResults.reduce((acc, result) => {
+        if (!acc[result.user_id]) {
+          acc[result.user_id] = [];
+        }
+        acc[result.user_id].push(result);
+        return acc;
+      }, {} as Record<string, Result[]>);
+
+      // Send one email per student with all their courses
+      for (const [userId, studentResults] of Object.entries(resultsByStudent)) {
         try {
+          const firstResult = studentResults[0];
+          
+          // Calculate GPA
+          const gradePoints: { [key: string]: number } = {
+            'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'F': 0.0
+          };
+          
+          const validGrades = studentResults.filter(r => r.grade && gradePoints[r.grade]);
+          const gpa = validGrades.length > 0
+            ? (validGrades.reduce((sum, r) => sum + (gradePoints[r.grade!] || 0), 0) / validGrades.length).toFixed(2)
+            : undefined;
+
+          // Prepare the combined results
+          const courseResults = studentResults.map(r => ({
+            courseCode: r.courses?.course_code || '',
+            courseName: r.courses?.course_name || '',
+            score: r.score,
+            grade: r.grade || undefined
+          }));
+
           const { error: functionError } = await supabase.functions.invoke("send-result-email", {
             body: {
-              studentName: result.profiles?.fullname,
-              studentEmail: result.profiles?.email,
-              subject: `${result.courses?.course_code} - ${result.courses?.course_name}`,
-              score: result.score,
-              grade: result.grade,
-              remarks: result.remarks,
-              resultId: result.id,
+              studentName: firstResult.profiles?.fullname,
+              studentEmail: firstResult.profiles?.email,
+              regno: firstResult.profiles?.regno,
+              department: firstResult.profiles?.department,
+              level: firstResult.profiles?.level,
+              semester: firstResult.profiles?.semester,
+              results: courseResults,
+              gpa: gpa,
+              remarks: validGrades.length > 0 ? (parseFloat(gpa!) >= 3.5 ? "Excellent Performance" : parseFloat(gpa!) >= 2.5 ? "Good Performance" : "Fair Performance") : undefined,
+              resultIds: studentResults.map(r => r.id)
             },
           });
 
@@ -203,7 +283,7 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
           const { error: updateError } = await supabase
             .from("results")
             .update({ status: "sent", sent_at: new Date().toISOString() })
-            .eq("id", result.id);
+            .in("id", studentResults.map(r => r.id));
 
           if (updateError) throw updateError;
 
@@ -213,13 +293,13 @@ export default function ResultsTable({ results, onUpdate }: ResultsTableProps) {
           await supabase
             .from("results")
             .update({ status: "failed" })
-            .eq("id", result.id);
+            .in("id", studentResults.map(r => r.id));
         }
       }
 
       toast({
         title: "Bulk send complete",
-        description: `Successfully sent: ${successCount}, Failed: ${failCount}`,
+        description: `Successfully sent to ${successCount} student(s), Failed: ${failCount}`,
       });
 
       onUpdate();
