@@ -40,7 +40,7 @@ export default function Dashboard() {
         .from("results")
         .select(`
           *,
-          profiles:profiles!results_user_id_fkey (fullname, regno, email),
+          profiles:profiles!results_user_id_fkey (fullname, regno, email, department, level, semester),
           courses:courses!results_course_id_fkey (course_code, course_name)
         `)
         .order("created_at", { ascending: false });
