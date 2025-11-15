@@ -54,6 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
       <tr>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${result.courseCode}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb;">${result.courseName}</td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${result.score}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600; color: #4F46E5;">${result.grade || '-'}</td>
       </tr>
     `).join('');
@@ -61,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Results System <onboarding@resend.dev>",
       to: [studentEmail],
-      subject: `Your Academic Results - ${semester ? semester + ' Semester' : 'Session'} ${level ? 'Level ' + level : ''}`,
+      subject: `Your Academic Results - ${semester || 'Current Session'} ${level ? '- Level ' + level : ''}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -97,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
               <div class="content">
                 <p class="greeting">Dear <strong>${studentName}</strong>,</p>
-                <p>Your Academic Result For The(${semester || 'Current'} Semester,Session) Is As Follows:</p>
+                <p>Your Academic Result for the <strong>${semester || 'Current Session'}</strong> is as follows:</p>
                 
                 <div class="info-section">
                   <div class="info-row">
@@ -121,7 +122,8 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                       <th>Course Code</th>
                       <th>Course Title</th>
-                      <th>Grade Unit</th>
+                      <th>Score</th>
+                      <th>Grade</th>
                     </tr>
                   </thead>
                   <tbody>
