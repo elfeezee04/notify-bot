@@ -35,8 +35,21 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [score, setScore] = useState("");
-  const [grade, setGrade] = useState("");
   const [remarks, setRemarks] = useState("");
+
+  // Auto-calculate grade based on score
+  const calculateGrade = (scoreValue: string): string => {
+    const numericScore = parseFloat(scoreValue);
+    if (isNaN(numericScore)) return "";
+    
+    if (numericScore >= 70) return "A";
+    if (numericScore >= 60) return "B";
+    if (numericScore >= 50) return "C";
+    if (numericScore >= 45) return "D";
+    return "F";
+  };
+
+  const grade = calculateGrade(score);
 
   useEffect(() => {
     fetchStudents();
@@ -141,10 +154,19 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedStudent || !selectedCourse || !score || !grade) {
+    if (!selectedStudent || !selectedCourse || !score) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!grade) {
+      toast({
+        title: "Invalid score",
+        description: "Please enter a valid numeric score",
         variant: "destructive",
       });
       return;
@@ -172,7 +194,6 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
       setSelectedStudent("");
       setSelectedCourse("");
       setScore("");
-      setGrade("");
       setRemarks("");
       onSuccess();
     } catch (error: any) {
@@ -240,10 +261,13 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="score">Score *</Label>
+              <Label htmlFor="score">Score (0-100) *</Label>
               <Input
                 id="score"
-                placeholder="e.g., 85/100"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="e.g., 85"
                 value={score}
                 onChange={(e) => setScore(e.target.value)}
                 required
@@ -251,14 +275,17 @@ export default function AddResultForm({ onSuccess }: AddResultFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="grade">Grade *</Label>
+              <Label htmlFor="grade">Grade (Auto-calculated)</Label>
               <Input
                 id="grade"
-                placeholder="e.g., A, B+, C"
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-                required
+                value={grade || "-"}
+                readOnly
+                disabled
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground">
+                A: 70-100, B: 60-69, C: 50-59, D: 45-49, F: 0-44
+              </p>
             </div>
           </div>
 
