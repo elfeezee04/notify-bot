@@ -64,19 +64,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     const cgpa = results.length > 0 ? (totalGradePoints / results.length).toFixed(2) : '0.00';
 
-    // Generate the table rows for courses with grade points
-    const courseRows = results.map(result => {
-      const gradePoint = gradePoints[result.grade || 'F'] || 0.0;
-      return `
+    // Generate the table rows for courses
+    const courseRows = results.map(result => `
       <tr>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${result.courseCode}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb;">${result.courseName}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${result.score}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600; color: #4F46E5;">${result.grade || '-'}</td>
-        <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${gradePoint.toFixed(1)}</td>
       </tr>
-    `;
-    }).join('');
+    `).join('');
 
     const emailResponse = await resend.emails.send({
       from: "Results System <onboarding@resend.dev>",
@@ -143,7 +139,6 @@ const handler = async (req: Request): Promise<Response> => {
                       <th>Course Title</th>
                       <th>Score</th>
                       <th>Grade</th>
-                      <th>Grade Point</th>
                     </tr>
                   </thead>
                   <tbody>
