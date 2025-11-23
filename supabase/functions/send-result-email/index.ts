@@ -49,15 +49,34 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending result email to:", studentEmail);
 
-    // Generate the table rows for courses
-    const courseRows = results.map(result => `
+    // Calculate CGPA using polytechnic grading system
+    const gradePoints: { [key: string]: number } = {
+      'A': 4.0,
+      'B': 3.0,
+      'C': 2.0,
+      'D': 1.0,
+      'F': 0.0
+    };
+
+    const totalGradePoints = results.reduce((sum, result) => {
+      return sum + (gradePoints[result.grade || 'F'] || 0);
+    }, 0);
+
+    const cgpa = results.length > 0 ? (totalGradePoints / results.length).toFixed(2) : '0.00';
+
+    // Generate the table rows for courses with grade points
+    const courseRows = results.map(result => {
+      const gradePoint = gradePoints[result.grade || 'F'] || 0.0;
+      return `
       <tr>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center;">${result.courseCode}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb;">${result.courseName}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${result.score}</td>
         <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600; color: #4F46E5;">${result.grade || '-'}</td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; text-align: center; font-weight: 600;">${gradePoint.toFixed(1)}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     const emailResponse = await resend.emails.send({
       from: "Results System <onboarding@resend.dev>",
@@ -124,12 +143,22 @@ const handler = async (req: Request): Promise<Response> => {
                       <th>Course Title</th>
                       <th>Score</th>
                       <th>Grade</th>
+                      <th>Grade Point</th>
                     </tr>
                   </thead>
                   <tbody>
                     ${courseRows}
                   </tbody>
                 </table>
+
+                <div style="background: #EEF2FF; border-left: 4px solid #4F46E5; padding: 20px; margin: 25px 0; border-radius: 4px;">
+                  <p style="margin: 0; font-size: 18px; font-weight: bold; color: #4F46E5;">
+                    CGPA (Cumulative Grade Point Average): ${cgpa}
+                  </p>
+                  <p style="margin: 8px 0 0 0; font-size: 13px; color: #6b7280;">
+                    Grade Point Scale: A=4.0, B=3.0, C=2.0, D=1.0, F=0.0
+                  </p>
+                </div>
 
                 ${gpa ? `
                 <div class="gpa-section">
