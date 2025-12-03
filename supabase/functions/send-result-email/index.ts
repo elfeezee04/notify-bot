@@ -108,7 +108,8 @@ const handler = async (req: Request): Promise<Response> => {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🎓 Kaduna State Polytechnic</h1>
+                <img src="https://f9d2c0e9-3bbb-4240-a6e0-00b341eebf3e.lovableproject.com/images/school-logo.png" alt="Kaduna State Polytechnic Logo" style="width: 80px; height: 80px; margin-bottom: 15px; border-radius: 8px;" />
+                <h1>Kaduna State Polytechnic</h1>
                 <p>Automated Result Dispatching System</p>
               </div>
               <div class="content">
