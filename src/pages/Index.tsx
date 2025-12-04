@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Mail, Send, Shield, Zap } from "lucide-react";
+import { Mail, Send, Shield, Zap } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -32,9 +32,7 @@ const Index = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
+            <img src="/images/school-logo.png" alt="Kaduna State Polytechnic Logo" className="w-10 h-10 rounded-lg" />
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Results Dispatch System
             </span>
@@ -53,9 +51,7 @@ const Index = () => {
       <main>
         <section className="container mx-auto px-4 py-20 text-center">
           <div className="max-w-3xl mx-auto space-y-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-6 animate-pulse">
-              <GraduationCap className="w-12 h-12 text-white" />
-            </div>
+            <img src="/images/school-logo.png" alt="Kaduna State Polytechnic Logo" className="w-20 h-20 rounded-2xl mb-6 animate-pulse" />
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent leading-tight">
               Automated Result Dispatching
             </h1>
@@ -64,7 +60,7 @@ const Index = () => {
             </p>
             <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto pt-8">
               <div className="bg-card rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate("/signup")}>
-                <GraduationCap className="w-10 h-10 mx-auto mb-3 text-primary" />
+                <img src="/images/school-logo.png" alt="Student Portal" className="w-10 h-10 mx-auto mb-3 rounded-lg" />
                 <h3 className="text-xl font-bold mb-2">Student Portal</h3>
                 <p className="text-sm text-muted-foreground mb-4">Register to view your results</p>
                 <Button className="w-full">Register as Student</Button>

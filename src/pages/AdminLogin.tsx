@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import AdminLoginForm from "@/components/auth/AdminLoginForm";
-import { Shield, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLogin() {
@@ -14,9 +14,7 @@ export default function AdminLogin() {
           </Button>
         </Link>
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary mb-4">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
+          <img src="/images/school-logo.png" alt="Kaduna State Polytechnic Logo" className="w-20 h-20 rounded-lg mb-4" />
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Administrator Portal
           </h1>
